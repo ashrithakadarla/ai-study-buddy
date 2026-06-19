@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { fetchStudyPlan } from '../services/studyPlanService'
+import { Link } from "react-router-dom";
 import './StudyPlan.css'
 
 function StudyPlan() {
@@ -125,6 +126,11 @@ function StudyPlan() {
                   </li>
                 ))}
               </ol>
+
+              <Link to="/quiz">
+                <button className="study-plan__quiz-btn">Start Quiz</button>
+              </Link>
+              
             </section>
           )}
         </div>

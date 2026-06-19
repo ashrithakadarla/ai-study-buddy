@@ -301,6 +301,13 @@
   color: var(--sp-text);
 }
 
+.study-plan__quiz-btn {
+  margin-top: 20px;
+  padding: 12px 20px;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
 /* Responsive */
 
 @media (min-width: 768px) {
