@@ -11,7 +11,7 @@ function Quiz() {
   const location = useLocation();
   const subject = location.state?.subject || "General";
 
-  const sampleQuestions = [
+  /*const sampleQuestions = [
     {
       question: "What is Java?",
       options: ["Language", "OS", "DB", "Browser"],
@@ -24,9 +24,16 @@ function Quiz() {
       answer: "Virtual Machine",
       explanation: "JVM executes Java bytecode and makes Java platform independent."
     },
-  ];
-  const handleGenerateQuiz = () => {
-    setQuestions(sampleQuestions);
+  ];*/
+  const handleGenerateQuiz = async () => {
+    const response = await fetch(
+      "http://127.0.0.1:5000/generate-quiz"
+    );
+  
+    const data = await response.json();
+  
+    setQuestions(data.questions);
+  
     setCurrentQuestion(0);
     setScore(null);
     setWeakAreas([]);

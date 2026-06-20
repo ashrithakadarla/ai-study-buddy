@@ -1,5 +1,6 @@
 import './Home.css'
 import { Link } from 'react-router-dom'
+import { useEffect, useState } from "react";
 
 const features = [
   {
@@ -29,6 +30,17 @@ const features = [
 ]
 
 function Home() {
+  const [backendMessage, setBackendMessage] = useState("");
+useEffect(() => {
+  fetch("http://127.0.0.1:5000/")
+    .then((response) => response.json())
+    .then((data) => {
+      setBackendMessage(data.message);
+    })
+    .catch((error) => {
+      console.error("Error:", error);
+    });
+}, []);
   return (
     <div className="home">
       <header className="home-header">
@@ -65,6 +77,7 @@ function Home() {
             <a href="#features" className="btn btn--secondary">
               See features
             </a>
+            <p>Backend Status: {backendMessage}</p>
           </div>
         </div>
         <div className="hero__visual" aria-hidden="true">
