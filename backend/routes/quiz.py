@@ -6,5 +6,4 @@ quiz_bp = Blueprint("quiz", __name__)
 @quiz_bp.route("/generate-quiz")
 def quiz():
     subject = request.args.get("subject", "General")
-    data = generate_quiz(subject)
-    return jsonify(data)
+    return jsonify(generate_quiz(subject))

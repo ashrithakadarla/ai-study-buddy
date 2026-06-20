@@ -10,20 +10,30 @@ function Quiz() {
   const [weakAreas, setWeakAreas] = useState([]);
   const location = useLocation();
   const subject = location.state?.subject || "General";
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleGenerateQuiz = async () => {
-    const response = await fetch(
-      `http://127.0.0.1:5000/generate-quiz?subject=${subject}`
-    );
+    try {
+      setLoading(true);
+      const response = await fetch(
+        `http://127.0.0.1:5000/generate-quiz?subject=${subject}`
+      );
   
-    const data = await response.json();
+      const data = await response.json();
   
-    setQuestions(data.questions);
-  
-    setCurrentQuestion(0);
-    setScore(null);
-    setWeakAreas([]);
-    setSelectedAnswers({});
+      setQuestions(data.questions);
+      setCurrentQuestion(0);
+      setScore(null);
+      setWeakAreas([]);
+      setSelectedAnswers({});
+    } catch(error){
+      console.error(error);
+      setError("Failed to generate quiz.");
+    }
+    finally{
+      setLoading(false);
+    }
   };
   const handleSubmit = () => {
     let marks = 0;
@@ -50,12 +60,16 @@ function Quiz() {
     <div className="quiz-container">
       <h1 className="quiz-title">🧠 {subject} Quiz</h1>
   
-      <button className="quiz-button" onClick={handleGenerateQuiz}>
-        Generate Quiz
+      <button
+        className="quiz-button"
+        onClick={handleGenerateQuiz}
+        disabled={loading}
+      >
+        {loading ? "Generating..." : "Generate Quiz"}
       </button>
   
       <div className="quiz-list">
-        {questions.length > 0 && (
+      {questions.length > 0 && score === null && (
           <div className="quiz-card">
   
             <h3 className="quiz-question">
@@ -138,6 +152,7 @@ function Quiz() {
               onClick={handleGenerateQuiz} >
               Restart Quiz
             </button>
+            {error && <p>{error}</p>}
       </div>
         )}
       </div>
