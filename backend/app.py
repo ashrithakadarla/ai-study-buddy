@@ -22,6 +22,24 @@ def generate_quiz():
             }
         ]
     })
+@app.route("/generate-study-plan")
+def generate_study_plan():
+    return jsonify({
+        "plan": [
+            {
+                "day": 1,
+                "topic": "Java Basics"
+            },
+            {
+                "day": 2,
+                "topic": "OOP Concepts"
+            },
+            {
+                "day": 3,
+                "topic": "Collections"
+            }
+        ]
+    })
 
 if __name__ == "__main__":
     app.run(debug=True)
