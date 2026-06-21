@@ -9,10 +9,18 @@ function StudyPlan() {
   const [hoursPerDay, setHoursPerDay] = useState('')
   const [plan, setPlan] = useState(null)
   const [error, setError] = useState('')
+  const [pdfFile, setPdfFile] = useState(null)
+const [pdfContent, setPdfContent] = useState("")
 
   async function handleSubmit(event) {
     event.preventDefault()
     setError('')
+
+    if (pdfFile) {
+      const pdfResult = await uploadPdf()    
+      console.log(pdfResult)
+      setPdfContent(pdfResult.content)
+    }
 
     const result = await fetchStudyPlan({
       subject,
@@ -27,6 +35,25 @@ function StudyPlan() {
     }
 
     setPlan(result.plan)
+  }
+
+  async function uploadPdf() {
+
+    if (!pdfFile) return null
+  
+    const formData = new FormData()
+  
+    formData.append("file", pdfFile)
+  
+    const response = await fetch(
+      "http://127.0.0.1:5000/upload-pdf",
+      {
+        method: "POST",
+        body: formData
+      }
+    )
+  
+    return await response.json()
   }
 
   return (
@@ -83,6 +110,16 @@ function StudyPlan() {
                 />
               </div>
 
+              <div className="study-plan__field">
+                <label htmlFor="pdf">Upload Notes PDF</label>
+                <input
+                  id="pdf"
+                  type="file"
+                  accept=".pdf"
+                  onChange={(e) => setPdfFile(e.target.files[0])}
+                />
+              </div>
+
               {error && (
                 <p className="study-plan__error" role="alert">
                   {error}
@@ -94,6 +131,16 @@ function StudyPlan() {
               </button>
             </form>
           </section>
+          
+          {pdfContent && (
+            <section className="study-plan__card">
+              <h2>PDF Content Preview</h2>
+
+              <p>
+                {pdfContent.substring(0, 500)}
+              </p>
+            </section>
+          )}
 
           {plan && (
             <section
