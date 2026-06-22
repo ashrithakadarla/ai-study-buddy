@@ -213,5 +213,6 @@ def generate_topic_quiz(topic, content):
         print("Quiz Error:", e)
 
         return {
-            "questions": []
-        }
+        "error": "Quiz generation unavailable. Gemini quota exceeded.",
+        "questions": []
+    }
