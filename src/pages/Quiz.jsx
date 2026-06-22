@@ -39,10 +39,10 @@ function Quiz() {
       }
   
       const data = await response.json();
-      console.log(data);
+      console.log("QUIZ RESPONSE:", data);
 
-      if (!data.questions) {
-        setError("AI quota reached. Please wait a few minutes and try again.");
+      if (data.error) {
+        setError(data.error);
         return;
       }
       setQuestions(data.questions || []);

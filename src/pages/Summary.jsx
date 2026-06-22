@@ -61,6 +61,9 @@ function Summary() {
             >
                 Generate Quiz
             </button>
+            <ErrorMessage
+              message="Unable to generate summary right now."
+            />
           </div>
         </div>
     </div>
