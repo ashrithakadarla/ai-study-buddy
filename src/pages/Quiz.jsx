@@ -13,7 +13,6 @@ function Quiz() {
   const [error, setError] = useState("");
 
   const location = useLocation();
-  console.log("QUIZ PAGE STATE:", location.state);
   const subject = location.state?.subject || "General";
   const topic = location.state?.topic;
   const pdfContent = location.state?.pdfContent;
@@ -39,7 +38,6 @@ function Quiz() {
       }
   
       const data = await response.json();
-      console.log("QUIZ RESPONSE:", data);
 
       if (data.error) {
         setError(data.error);
@@ -81,8 +79,6 @@ function Quiz() {
     setScore(marks);
     setWeakAreas(wrong);
   };
-  console.log("TOPIC:", topic)
-  console.log("PDF CONTENT:", pdfContent)
   return (
     <div className="quiz-container">
       <h1 className="quiz-title">🧠 {topic || subject} Quiz</h1>
@@ -92,10 +88,13 @@ function Quiz() {
         onClick={handleGenerateQuiz}
         disabled={loading}
       >
-        {loading ? "Generating..." : "Generate Quiz"}
+        {loading ? "Generating Quiz..." : "Generate Quiz"}
       </button>
   
       <div className="quiz-list">
+      {questions.length === 0 && !loading && (
+        <p>No quiz generated yet.</p>
+      )}
       {questions.length > 0 && score === null && (
           <div className="quiz-card">
   

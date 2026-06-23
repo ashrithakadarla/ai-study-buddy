@@ -1,21 +1,40 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { fetchStudyPlan } from '../services/studyPlanService'
 import { Link, useNavigate } from "react-router-dom";
 import './StudyPlan.css'
 import ErrorMessage from "../components/ErrorMessage";
 
 function StudyPlan() {
-  const [subject, setSubject] = useState('')
-  const [examDate, setExamDate] = useState('')
-  const [hoursPerDay, setHoursPerDay] = useState('')
-  const [plan, setPlan] = useState(null)
+  const [subject, setSubject] = useState(() => localStorage.getItem('studyPlan-subject') || '')
+  const [examDate, setExamDate] = useState(() => localStorage.getItem('studyPlan-examDate') || '')
+  const [hoursPerDay, setHoursPerDay] = useState(() => localStorage.getItem('studyPlan-hoursPerDay') || '')
+  const [plan, setPlan] = useState(() => {
+    const saved = localStorage.getItem('studyPlan-plan')
+    return saved ? JSON.parse(saved) : null
+  })
   const [error, setError] = useState('')
   const [pdfFile, setPdfFile] = useState(null)
-  const [pdfContent, setPdfContent] = useState("")
+  const [pdfContent, setPdfContent] = useState(() => localStorage.getItem('studyPlan-pdfContent') || '')
   const [loading, setLoading] = useState(false)
   const [summary, setSummary] = useState(null)
   const [loadingSummary, setLoadingSummary] = useState(false)
-  const [completedDays, setCompletedDays] = useState([])
+  const [fileName, setFileName] = useState(() => localStorage.getItem('studyPlan-fileName') || '')
+  const [completedDays, setCompletedDays] = useState(() => {
+    const savedFileName = localStorage.getItem('studyPlan-fileName')
+    const savedPlan = localStorage.getItem('studyPlan-plan')
+    const parsedPlan = savedPlan ? JSON.parse(savedPlan) : null
+    const planId = savedFileName || parsedPlan?.subject || ''
+    if (planId) {
+      const saved = localStorage.getItem(`completedDays-${planId}`)
+      return saved ? JSON.parse(saved) : []
+    }
+    return []
+  })
+
+  // Stable storage key strategy: uses fileName for PDF uploads, or plan subject for standard plans.
+  const planId = fileName || plan?.subject || '';
+  const storageKey = planId ? `completedDays-${planId}` : '';
+
   const daysLeft = examDate
       ? Math.ceil(
           (new Date(examDate) - new Date()) /
@@ -24,25 +43,53 @@ function StudyPlan() {
       : 0
   const navigate = useNavigate()
 
+  // Save the overall study plan and details to localStorage whenever they change
+  useEffect(() => {
+    if (plan) {
+      localStorage.setItem('studyPlan-plan', JSON.stringify(plan))
+      localStorage.setItem('studyPlan-subject', subject)
+      localStorage.setItem('studyPlan-examDate', examDate)
+      localStorage.setItem('studyPlan-hoursPerDay', hoursPerDay)
+      localStorage.setItem('studyPlan-fileName', fileName)
+      localStorage.setItem('studyPlan-pdfContent', pdfContent)
+    }
+  }, [plan, subject, examDate, hoursPerDay, fileName, pdfContent])
+
+  // Save progress (completed days) to localStorage whenever progress or storage key changes
+  useEffect(() => {
+    if (!storageKey) return;
+    
+    console.log("Saving progress to:", storageKey);
+    localStorage.setItem(
+      storageKey,
+      JSON.stringify(completedDays)
+    );
+  }, [completedDays, storageKey]);
 
   async function handleSubmit(event) {
     event.preventDefault()
     setLoading(true)
     setError('')
     
-    try{
+    try {
       if (pdfFile) {
         const pdfResult = await uploadPdf()
-      
+        setFileName(pdfResult.filename)
         setPdfContent(pdfResult.content)
       
-        setPlan({
+        const newPlan = {
           ...pdfResult.plan,
           subject,
           examDate,
           hoursPerDay,
           daysLeft: pdfResult.daysLeft
-        })
+        }
+        setPlan(newPlan)
+
+        // Load progress for this specific new PDF
+        const newStorageKey = `completedDays-${pdfResult.filename}`
+        const saved = localStorage.getItem(newStorageKey)
+        setCompletedDays(saved ? JSON.parse(saved) : [])
         return
       }  
   
@@ -60,8 +107,14 @@ function StudyPlan() {
       }
   
       setPlan(result.plan)
+      setFileName("") // Clear fileName for standard study plan
+
+      // Load progress for this specific new standard study plan
+      const newStorageKey = `completedDays-${result.plan.subject}`
+      const saved = localStorage.getItem(newStorageKey)
+      setCompletedDays(saved ? JSON.parse(saved) : [])
     }
-    finally{
+    finally {
       setLoading(false)
     }
   }
@@ -202,7 +255,7 @@ function StudyPlan() {
               <ErrorMessage message={error} />
 
               <button type="submit" className="study-plan__button" disabled={loading}>
-                {loading ? "Generating..." : "Generate Plan"}
+                {loading ? "Generating Study Plan...." : "Generate Plan"}
               </button>
             </form>
           </section>
@@ -217,6 +270,9 @@ function StudyPlan() {
             </section>
           )}
 
+          {!plan && (
+            <p>Generate a study plan to get started.</p>
+          )}
           {plan && (
             <section
               className="study-plan__card study-plan__result-card"
@@ -272,7 +328,9 @@ function StudyPlan() {
                       )}
                       <button
                         className="complete-btn"
-                        onClick={() => toggleDayComplete(day.day)}
+                        onClick={(e) => {e.stopPropagation();
+                          toggleDayComplete(day.day);}
+                        }
                       >
                         {completedDays.includes(day.day)
                           ? "✅ Completed"

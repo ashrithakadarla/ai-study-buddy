@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
+import ErrorMessage from "../components/ErrorMessage"
+
 
 function Summary() {
 
@@ -9,6 +11,8 @@ function Summary() {
   const topic = location.state?.topic
   const summary = location.state?.summaryData  
   const pdfContent = location.state?.pdfContent
+
+  const [error, setError] = useState("")
 
   async function handleQuiz() {
 
@@ -24,7 +28,6 @@ function Summary() {
   if (!summary) {
     return <h2>No summary available.</h2>
   }
-  
   return (
     <div className="summary-page">
         <div className="summary-container">
@@ -61,9 +64,9 @@ function Summary() {
             >
                 Generate Quiz
             </button>
-            <ErrorMessage
-              message="Unable to generate summary right now."
-            />
+            {error && (
+              <ErrorMessage message={error} />
+            )}
           </div>
         </div>
     </div>
