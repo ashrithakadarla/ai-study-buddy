@@ -5,34 +5,49 @@ import './StudyPlan.css'
 import ErrorMessage from "../components/ErrorMessage";
 
 function StudyPlan() {
-  const [subject, setSubject] = useState(() => localStorage.getItem('studyPlan-subject') || '')
-  const [examDate, setExamDate] = useState(() => localStorage.getItem('studyPlan-examDate') || '')
-  const [hoursPerDay, setHoursPerDay] = useState(() => localStorage.getItem('studyPlan-hoursPerDay') || '')
+  const [subject, setSubject] = useState('')
+  const [examDate, setExamDate] = useState('')
+  const [hoursPerDay, setHoursPerDay] = useState('')
+  
+  // Synchronously initialize plan from sessionStorage to persist during navigation within session
   const [plan, setPlan] = useState(() => {
-    const saved = localStorage.getItem('studyPlan-plan')
-    return saved ? JSON.parse(saved) : null
+    const savedPlan = sessionStorage.getItem('activeStudyPlan')
+    return savedPlan ? JSON.parse(savedPlan) : null
   })
+  
   const [error, setError] = useState('')
   const [pdfFile, setPdfFile] = useState(null)
-  const [pdfContent, setPdfContent] = useState(() => localStorage.getItem('studyPlan-pdfContent') || '')
+  const [pdfContent, setPdfContent] = useState('')
   const [loading, setLoading] = useState(false)
-  const [summary, setSummary] = useState(null)
-  const [loadingSummary, setLoadingSummary] = useState(false)
-  const [fileName, setFileName] = useState(() => localStorage.getItem('studyPlan-fileName') || '')
+  const [summary] = useState(null)
+  const [loadingSummary] = useState(false)
+  
+  // Initialize fileName from stored active plan if it exists
+  const [fileName, setFileName] = useState(() => {
+    const savedPlan = sessionStorage.getItem('activeStudyPlan')
+    if (savedPlan) {
+      const parsed = JSON.parse(savedPlan)
+      return parsed.fileName || ''
+    }
+    return ''
+  })
+
+  // Synchronously initialize completedDays from localStorage using active plan details
   const [completedDays, setCompletedDays] = useState(() => {
-    const savedFileName = localStorage.getItem('studyPlan-fileName')
-    const savedPlan = localStorage.getItem('studyPlan-plan')
-    const parsedPlan = savedPlan ? JSON.parse(savedPlan) : null
-    const planId = savedFileName || parsedPlan?.subject || ''
-    if (planId) {
-      const saved = localStorage.getItem(`completedDays-${planId}`)
-      return saved ? JSON.parse(saved) : []
+    const savedPlan = sessionStorage.getItem('activeStudyPlan')
+    if (savedPlan) {
+      const parsed = JSON.parse(savedPlan)
+      const initialPlanId = parsed.fileName || parsed.subject || ''
+      if (initialPlanId) {
+        const saved = localStorage.getItem(`completedDays-${initialPlanId}`)
+        return saved ? JSON.parse(saved) : []
+      }
     }
     return []
   })
 
   // Stable storage key strategy: uses fileName for PDF uploads, or plan subject for standard plans.
-  const planId = fileName || plan?.subject || '';
+  const planId = fileName || plan?.fileName || plan?.subject || '';
   const storageKey = planId ? `completedDays-${planId}` : '';
 
   const daysLeft = examDate
@@ -43,17 +58,28 @@ function StudyPlan() {
       : 0
   const navigate = useNavigate()
 
-  // Save the overall study plan and details to localStorage whenever they change
+  // Save active study plan to sessionStorage whenever it changes
   useEffect(() => {
     if (plan) {
-      localStorage.setItem('studyPlan-plan', JSON.stringify(plan))
-      localStorage.setItem('studyPlan-subject', subject)
-      localStorage.setItem('studyPlan-examDate', examDate)
-      localStorage.setItem('studyPlan-hoursPerDay', hoursPerDay)
-      localStorage.setItem('studyPlan-fileName', fileName)
-      localStorage.setItem('studyPlan-pdfContent', pdfContent)
+      sessionStorage.setItem('activeStudyPlan', JSON.stringify(plan))
+    } else {
+      sessionStorage.removeItem('activeStudyPlan')
     }
-  }, [plan, subject, examDate, hoursPerDay, fileName, pdfContent])
+  }, [plan])
+
+  // Helper to clear all stale/old plans from localStorage and sessionStorage
+  function clearStalePlans() {
+    const keysToRemove = [
+      'studyPlan-plan',
+      'studyPlan-subject',
+      'studyPlan-examDate',
+      'studyPlan-hoursPerDay',
+      'studyPlan-fileName',
+      'studyPlan-pdfContent'
+    ];
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    sessionStorage.removeItem('activeStudyPlan');
+  }
 
   // Save progress (completed days) to localStorage whenever progress or storage key changes
   useEffect(() => {
@@ -71,6 +97,9 @@ function StudyPlan() {
     setLoading(true)
     setError('')
     
+    // Clear stale plans and active session storage before generating a new plan
+    clearStalePlans()
+    
     try {
       if (pdfFile) {
         const pdfResult = await uploadPdf()
@@ -82,7 +111,8 @@ function StudyPlan() {
           subject,
           examDate,
           hoursPerDay,
-          daysLeft: pdfResult.daysLeft
+          daysLeft: pdfResult.daysLeft,
+          fileName: pdfResult.filename // Save fileName in the plan for restoration
         }
         setPlan(newPlan)
 
@@ -106,7 +136,17 @@ function StudyPlan() {
         return
       }
   
-      setPlan(result.plan)
+      // Normalize standard plan structure to match PDF plan structure (using `plan` key)
+      const normalizedPlan = {
+        ...result.plan,
+        plan: result.plan.days.map(d => ({
+          day: d.dayNumber,
+          topic: d.topic,
+          goal: d.label
+        })),
+        daysLeft: result.plan.daysRemaining
+      }
+      setPlan(normalizedPlan)
       setFileName("") // Clear fileName for standard study plan
 
       // Load progress for this specific new standard study plan
@@ -282,10 +322,10 @@ function StudyPlan() {
                 📅 Personalized Study Plan
               </h2>
               <p className="study-plan__result-meta">
-                <span>{subject}</span>
-                <span>Exam: {examDate}</span>
-                <span>{hoursPerDay} hrs/day</span>
-                <span>{daysLeft} days left</span>
+                <span>{plan.subject}</span>
+                <span>Exam: {plan.examDate}</span>
+                <span>{plan.hoursPerDay} hrs/day</span>
+                <span>{plan.daysLeft} days left</span>
               </p>
               <div className="progress-container">
                 <div className="progress-header">

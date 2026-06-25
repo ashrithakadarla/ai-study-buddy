@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import ErrorMessage from "../components/ErrorMessage"
 
@@ -12,7 +12,7 @@ function Summary() {
   const summary = location.state?.summaryData  
   const pdfContent = location.state?.pdfContent
 
-  const [error, setError] = useState("")
+  const [error] = useState("")
 
   async function handleQuiz() {
 
